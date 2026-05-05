@@ -1,0 +1,27 @@
+{
+  "entities": {
+    "PublishedApp": {
+      "title": "Published App",
+      "description": "A web application published by a user",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the app" },
+        "description": { "type": "string", "description": "Brief description" },
+        "url": { "type": "string", "description": "External URL or Drive Link" },
+        "logoUrl": { "type": "string", "description": "Optional icon/logo URL" },
+        "type": { "type": "string", "enum": ["url", "drive", "github"], "description": "Type of source" },
+        "buildInstructions": { "type": "string", "description": "Commands or steps needed to run (npm install, etc.)" },
+        "authorId": { "type": "string", "description": "User UID from Firebase Auth" },
+        "authorName": { "type": "string", "description": "Display name of the author" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["name", "url", "type", "authorId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/apps/{appId}": {
+      "schema": "PublishedApp",
+      "description": "Collection of all web applications published on the platform"
+    }
+  }
+}

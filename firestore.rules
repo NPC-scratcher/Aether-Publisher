@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(authorId) { return isSignedIn() && request.auth.uid == authorId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    
+    function isValidApp(data) {
+      return data.keys().hasAll(['name', 'url', 'type', 'authorId', 'createdAt']) &&
+             data.keys().size() <= 10 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             (data.description == null || (data.description is string && data.description.size() <= 500)) &&
+             (data.logoUrl == null || (data.logoUrl is string && data.logoUrl.size() <= 1000)) &&
+             (data.buildInstructions == null || (data.buildInstructions is string && data.buildInstructions.size() <= 1000)) &&
+             (data.authorName == null || (data.authorName is string && data.authorName.size() <= 100)) &&
+             data.url is string && data.url.size() <= 2048 &&
+             data.type in ['url', 'drive', 'github'] &&
+             data.authorId == request.auth.uid &&
+             data.createdAt == request.time;
+    }
+
+    match /apps/{appId} {
+      allow get: if true; // Publicly viewable
+      allow list: if true; // Publicly listable for the gallery
+      
+      allow create: if isSignedIn() && isValidId(appId) && isValidApp(request.resource.data);
+      
+      allow update: if isOwner(resource.data.authorId) && 
+                      isValidApp(request.resource.data) &&
+                      request.resource.data.authorId == resource.data.authorId &&
+                      request.resource.data.createdAt == resource.data.createdAt;
+                      
+      allow delete: if isOwner(resource.data.authorId);
+    }
+  }
+}
