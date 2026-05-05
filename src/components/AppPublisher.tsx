@@ -148,7 +148,7 @@ export const AppPublisher: React.FC<AppPublisherProps> = ({ onComplete }) => {
 
           <div className="space-y-2">
             <label className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/30 ml-1">
-              {type === 'url' ? 'Target Web Address' : type === 'drive' ? 'Google Drive Folder Link' : 'GitHub Repository URL'}
+              {type === 'url' ? 'Target Web Address' : type === 'drive' ? 'Google Drive Link' : 'GitHub Repository URL'}
             </label>
             <div className="relative">
               <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={16} />
@@ -156,14 +156,14 @@ export const AppPublisher: React.FC<AppPublisherProps> = ({ onComplete }) => {
                 required
                 value={url}
                 onChange={e => setUrl(e.target.value)}
-                placeholder={type === 'url' ? 'https://example.com' : type === 'drive' ? 'https://drive.google.com/drive/folders/...' : 'https://github.com/user/repo'}
+                placeholder={type === 'url' ? 'https://example.com' : type === 'drive' ? 'https://drive.google.com/file/d/ID/view' : 'https://github.com/user/repo'}
                 className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-blue-500/50 transition-all text-sm font-medium"
               />
             </div>
-            <p className="text-[10px] text-white/20 mt-2 px-1">
-              {type === 'drive' && "Ensure the Drive folder is shared with 'Anyone with the link'."}
+            <p className="text-[10px] text-white/20 mt-2 px-1 leading-relaxed">
+              {type === 'drive' && "For best results, use a 'File Link' instead of a folder link. Ensure sharing is set to 'Anyone with the link'."}
               {type === 'url' && "Pro tip: Use a hosted link (GitHub Pages/Vercel) for immediate execution."}
-              {type === 'github' && "Direct repository link for source code exploration."}
+              {type === 'github' && "Direct repository link for source code exploration. Single HTML files will be rendered automatically."}
             </p>
           </div>
 

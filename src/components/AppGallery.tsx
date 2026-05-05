@@ -11,9 +11,23 @@ interface AppGalleryProps {
 }
 
 export const AppGallery: React.FC<AppGalleryProps> = ({ onOpenApp, onPublish }) => {
+  const [filter, setFilter] = React.useState<'all' | 'saved'>('all');
+  const [savedIds, setSavedIds] = React.useState<string[]>([]);
   const appsRef = collection(db, 'apps');
   const q = query(appsRef, orderBy('createdAt', 'desc'));
   const [apps, loading, error] = useCollectionData(q, { idField: 'id' } as any);
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem('saved_apps');
+    if (saved) {
+      setSavedIds(JSON.parse(saved));
+    }
+  }, []);
+
+  const filteredApps = apps?.filter((app: any) => {
+    if (filter === 'saved') return savedIds.includes(app.id);
+    return true;
+  });
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this app?')) return;
@@ -37,32 +51,49 @@ export const AppGallery: React.FC<AppGalleryProps> = ({ onOpenApp, onPublish }) 
           <p className="text-white/30 text-sm">Discover and run applications built by other creators.</p>
         </div>
         
-        <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-blue-500 transition-colors" size={16} />
-          <input 
-            type="text" 
-            placeholder="Search web apps..."
-            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3 w-80 outline-none focus:border-blue-500/50 transition-all text-sm"
-          />
+        <div className="flex flex-col items-center md:items-end gap-4">
+          <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10">
+            <button 
+              onClick={() => setFilter('all')}
+              className={`px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${filter === 'all' ? 'bg-blue-600 text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
+            >
+              All Apps
+            </button>
+            <button 
+              onClick={() => setFilter('saved')}
+              className={`px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${filter === 'saved' ? 'bg-emerald-600 text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
+            >
+              Saved Offline
+            </button>
+          </div>
+          
+          <div className="relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-blue-500 transition-colors" size={16} />
+            <input 
+              type="text" 
+              placeholder="Search web apps..."
+              className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3 w-80 md:w-64 lg:w-80 outline-none focus:border-blue-500/50 transition-all text-sm"
+            />
+          </div>
         </div>
       </div>
 
-      {!apps || apps.length === 0 ? (
+      {!filteredApps || filteredApps.length === 0 ? (
         <div 
-          onClick={auth.currentUser ? onPublish : undefined}
-          className={`h-[40vh] flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-3xl group hover:border-blue-500/20 transition-all ${auth.currentUser ? 'cursor-pointer hover:bg-blue-500/5' : ''}`}
+          onClick={auth.currentUser && filter === 'all' ? onPublish : undefined}
+          className={`h-[40vh] flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-3xl group hover:border-blue-500/20 transition-all ${auth.currentUser && filter === 'all' ? 'cursor-pointer hover:bg-blue-500/5' : ''}`}
         >
           <div className="bg-blue-600/10 p-5 rounded-full mb-4 group-hover:scale-110 transition-transform">
-            <Plus className="text-blue-500" size={32} />
+            {filter === 'saved' ? <FolderOpen className="text-emerald-500" size={32} /> : <Plus className="text-blue-500" size={32} />}
           </div>
           <p className="text-white/20 font-bold uppercase tracking-widest text-xs">
-            {auth.currentUser ? 'Be the first to publish an app!' : 'Sign in to publish the first app'}
+            {filter === 'saved' ? 'No apps saved for offline yet.' : (auth.currentUser ? 'Be the first to publish an app!' : 'Sign in to publish the first app')}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Publish Card */}
-          {auth.currentUser && (
+          {auth.currentUser && filter === 'all' && (
             <motion.div 
               key="publish-card"
               initial={{ opacity: 0, y: 10 }}
@@ -79,9 +110,9 @@ export const AppGallery: React.FC<AppGalleryProps> = ({ onOpenApp, onPublish }) 
             </motion.div>
           )}
 
-          {apps.map((app: any) => (
+          {filteredApps.map((app: any, index: number) => (
             <motion.div 
-              key={app.id} 
+              key={app.id || index} 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               whileHover={{ y: -5 }}
@@ -89,11 +120,18 @@ export const AppGallery: React.FC<AppGalleryProps> = ({ onOpenApp, onPublish }) 
               onClick={() => onOpenApp(app.id)}
             >
               {/* Type Badge */}
-              <div className={`absolute top-0 right-0 px-4 py-1.5 rounded-bl-2xl text-[9px] font-bold uppercase tracking-widest 
-                ${app.type === 'drive' ? 'bg-amber-600/20 text-amber-500' : 
-                  app.type === 'github' ? 'bg-purple-600/20 text-purple-500' : 
-                  'bg-blue-600/20 text-blue-500'}`}>
-                {app.type === 'drive' ? 'Drive' : app.type === 'github' ? 'GitHub' : 'Web'}
+              <div className="absolute top-0 right-0 flex">
+                {savedIds.includes(app.id) && (
+                  <div className="px-3 py-1.5 bg-emerald-600/20 text-emerald-500 text-[10px] font-black uppercase border-l border-b border-white/5">
+                    SAVED
+                  </div>
+                )}
+                <div className={`px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest 
+                  ${app.type === 'drive' ? 'bg-amber-600/20 text-amber-500' : 
+                    app.type === 'github' ? 'bg-purple-600/20 text-purple-500' : 
+                    'bg-blue-600/20 text-blue-500'}`}>
+                  {app.type === 'drive' ? 'Drive' : app.type === 'github' ? 'GitHub' : 'Web'}
+                </div>
               </div>
 
               <div className="flex items-start justify-between mb-6">
